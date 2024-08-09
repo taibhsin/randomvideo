@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        background: black;
+        margin: 0;
+        padding: 0;
+      }
+      #player {
+        display: flex;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+      }
+      #authorizeLink {
+        border: 2px solid purple;
+        border-radius: 5px;
+        padding: 0.5rem;
+        background: rgb(241, 233, 242);
+        font-family: sans-serif;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+      }
+    </style>
+    <title>Random</title>
+  </head>
+  <body>
+    <a id="authorizeLink" href="https://id.twitch.tv/oauth2/authorize?client_id=jn9o60wkooor5l8f1y9nmno1nvo8sh&response_type=token&scope=&redirect_uri=https://taibhsin.github.io/randomvideo">Connect with Twitch</a>
+    <div id="player"></div>
+    <script src= "https://player.twitch.tv/js/embed/v1.js"></script>
+    <script>
+      const hash = window.location.hash;
+      let authToken = undefined;
+
+      if (hash.startsWith('#access_token=')) {
+        authorizeLink.remove();
+        authToken = hash.match(/access_token=(?<token>.*?)&/).groups.token;
+        const randomInt = (a, b) => {
+            const range = Math.abs(b - a);
+            const val = Math.floor(Math.random() * range + a);
+            return val;
+        };
+
+        const clipDurationInSeconds = randomInt(15, 30);
+        const durationRegex = /(?<hours>\d+h)?(?<minutes>\d+m)(?<seconds>\d+s)/;
+        function durationToSeconds(durationString) {
+            const match = durationString.match(durationRegex);
+            const hours = match.groups.hours ? Number.parseInt(match.groups.hours) : 0;
+            const minutes = match.groups.minutes ? Number.parseInt(match.groups.minutes) : 0;
+            const seconds = match.groups.minutes ? Number.parseInt(match.groups.seconds) : 0;
+            const totalSeconds = seconds + minutes*60 + hours*60*60;
+            return totalSeconds;
+        }
+
+        function secondsToDuration(durationInSeconds) {
+            const hours = Math.floor(durationInSeconds / 60 / 60);
+            const minutes = Math.floor((durationInSeconds - hours*60*60)/60);
+            const seconds = durationInSeconds - hours*60*60 - minutes*60;
+            return `${hours}h${minutes}m${seconds}s`;
+        }
+
+        (async () => {
+        const clientId = 'jn9o60wkooor5l8f1y9nmno1nvo8sh';
+        const login = 'deadblossomjesse';
+        const userId = '250208057';
+        const videos = (await (await fetch(`https://api.twitch.tv/helix/videos?user_id=${userId}&first=100&type=archive`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Client-Id': clientId
+            }
+        })).json()).data;
+
+        const videoCount = videos.length;
+        const randomVideoId = Math.round(Math.random() * (videoCount - 1));
+        const randomVideo = videos[randomVideoId];
+        const videoDurationInSeconds = durationToSeconds(randomVideo.duration) - clipDurationInSeconds;
+        const startTimeInSeconds = Math.round(Math.random() * videoDurationInSeconds);
+        const startTimeFormatted = secondsToDuration(startTimeInSeconds);
+
+        const options = {
+            width: '100%',
+            height: '100%',
+            video: randomVideo.id,
+            autoplay: true,
+            time: startTimeFormatted,
+            muted: false
+        };
+        const twitchPlayer = new Twitch.Player("player", options);
+        twitchPlayer.setMuted(false);
+        twitchPlayer.setVolume(1.0);
+    })();
+  } else {
+    player.remove();
+  }
+    </script>
+  </body>
+</html>
